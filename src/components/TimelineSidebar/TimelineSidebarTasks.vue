@@ -1,5 +1,5 @@
 <template>
-  <div :class="bemm()">
+  <div :class="bemm('')">
     <div v-for="task in tasks" :key="task.id" :class="bemm('task')">
       {{ task.label }}
     </div>
@@ -19,11 +19,11 @@ defineProps({
   }
 })
 
+
 </script>
 
 <style lang="scss">
 .timeline-sidebar-tasks {
-
   position: sticky; top: 0; left: 0;
 
   &__task {
@@ -34,5 +34,6 @@ defineProps({
     color: black;
     font-weight: bold;
   }
+
 }
 </style>

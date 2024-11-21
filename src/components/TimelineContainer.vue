@@ -1,33 +1,52 @@
 <template>
-  <div :class="bemm()">
-    <TimelinePageHeader :class="bemm('page-header')">
-      <button v-for="type in types" :class="bemm('button', type.active ? 'active' : 'inactive')"
-        @click="activeType = type.id">{{ type.label }}</button>
-    </TimelinePageHeader>
-    <div :class="bemm('container')">
 
-      <template v-if="activeType == 3">
-        <TimelineSidebarHeader type="users" :class="bemm('sidebar-header', 'users')" />
-        <TimelineSidebarContainer :class="bemm('sidebar', 'users')">
-          <TimelineSidebarUsers :entities="users" />
-        </TimelineSidebarContainer>
-      </template>
-      <template v-if="activeType == 2">
+  <div :class="bemm()">
+
+    <TimelinePageHeader :class="bemm('page-header')">
+        <button v-for="type in types" :key="type.id" :class="bemm('button', type.active ? 'active' : 'inactive')"
+          @click="activeType = type.id">
+          {{ type.label }}
+        </button>
+      </TimelinePageHeader>
+      <div :class="bemm('wrapper')">
+
+
+    <TimelineTaskBar :class="bemm('taskbar')" v-if="activeType == 2"  :active="activeTaskbar">
+      <TimelineSidebarTasks :tasks="tasks" />
+    </TimelineTaskBar>
+
+
+
+      <div :class="bemm('container',{
+      'has-active-taskbar': activeTaskbar && activeType === 2,
+      'has-inactive-taskbar': !activeTaskbar && activeType === 2
+    })">
+        <template v-if="activeType === 2">
+          <TimelineSidebarHeader type="users" :class="bemm('sidebar-header', 'users')" />
+          <TimelineSidebarContainer :class="bemm('sidebar', 'users')">
+            <TimelineSidebarUsers :entities="users" />
+          </TimelineSidebarContainer>
+        </template>
+        <!--
+      <template v-if="activeType === 2">
         <TimelineSidebarHeader type="tasks" :class="bemm('sidebar-header', 'tasks')" />
         <TimelineSidebarContainer :class="bemm('sidebar', 'tasks')">
           <TimelineSidebarTasks :tasks="tasks" />
         </TimelineSidebarContainer>
-      </template>
-      <template v-if="activeType == 1">
-        <TimelineSidebarHeader type="project" :class="bemm('sidebar-header', 'project')" />
-        <TimelineSidebarContainer :class="bemm('sidebar', 'project')">
-          <TimelineSidebarProjects :entities="projects" />
-        </TimelineSidebarContainer>
-      </template>
+      </template> -->
 
-      <TimelineHeader :days="timeline" :class="bemm('timeline-header')" />
-      <div :class="bemm('timeline-container')">
-        <Timeline :days="timeline" :class="bemm('timeline')" :hasWorkload="activeType == 3" />
+        <template v-if="activeType === 1">
+          <TimelineSidebarHeader type="project" :class="bemm('sidebar-header', 'project')" />
+          <TimelineSidebarContainer :class="bemm('sidebar', 'project')">
+            <TimelineSidebarProjects :entities="projects" />
+          </TimelineSidebarContainer>
+        </template>
+
+        <TimelineHeader :days="timelineDays" :class="bemm('timeline-header')" />
+        <div :class="bemm('timeline-container')">
+          <Timeline :days="timelineDays" :entities="activeEntities" :class="bemm('timeline')"
+            :hasWorkload="activeType === 2" />
+        </div>
       </div>
     </div>
   </div>
@@ -35,16 +54,17 @@
 
 <script lang="ts" setup>
 import { useBemm } from 'bemm'
+import { computed, onMounted, ref } from 'vue';
+import { Day, Entity, Task } from './Timeline.model';
 import TimelineSidebarContainer from './TimelineSidebar/TimelineSidebarContainer.vue';
 import TimelineHeader from './TimelineHeader.vue';
 import Timeline from './Timeline.vue';
 import TimelinePageHeader from './TimelinePageHeader.vue';
 import TimelineSidebarHeader from './TimelineSidebar/TimelineSidebarHeader.vue';
-import { computed, onMounted, ref } from 'vue';
-import { Day, Entity, Task } from './Timeline.model';
 import TimelineSidebarUsers from './TimelineSidebar/TimelineSidebarUsers.vue';
 import TimelineSidebarTasks from './TimelineSidebar/TimelineSidebarTasks.vue';
 import TimelineSidebarProjects from './TimelineSidebar/TimelineSidebarProjects.vue';
+import TimelineTaskBar from './TimelineTaskBar.vue';
 import { eventBus } from '../eventBus';
 
 const bemm = useBemm('timeline-container', {
@@ -52,26 +72,116 @@ const bemm = useBemm('timeline-container', {
 });
 
 const activeType = ref(1);
-const types = computed(() => {
-  return [
-    {
-      label: 'Project',
-      id: 1,
-      active: activeType.value === 1
-    },
-    {
-      label: 'Task',
-      id: 2,
-      active: activeType.value === 2
-    },
-    {
-      label: 'User',
-      id: 3,
-      active: activeType.value === 3
-    }
-  ]
-})
+const activeTaskbar = ref(false);
+const collapsedUsers = ref(['Goofy']);
 
+const types = computed(() => [
+  { label: 'Projects', id: 1, active: activeType.value === 1 },
+  { label: 'Users', id: 2, active: activeType.value === 2 }
+]);
+
+// Generate timeline days
+const timelineDays = computed<Day[]>(() => {
+  return Array.from({ length: 365 }, (_, index) => ({
+    label: index.toString(),
+    id: index.toString()
+  }));
+});
+
+// Generate random tasks helper
+const generateRandomTasks = (opts: { amount: number }) => {
+  const tasks = [];
+  let currentStartDay = 0;
+
+  for (let i = 0; i < opts.amount; i++) {
+    const lengthInDays = Math.floor(Math.random() * 12) + 1;
+    const maxStartDay = 365 - lengthInDays;
+
+    if (currentStartDay > maxStartDay) {
+      break; // No more tasks can fit within the remaining days
+    }
+
+    const startDay = Math.floor(Math.random() * (maxStartDay - currentStartDay + 1)) + currentStartDay;
+
+    tasks.push({
+      label: `Task ${i}`,
+      id: i.toString(),
+      lengthInDays,
+      startDay
+    });
+
+    currentStartDay = startDay + lengthInDays;
+  }
+
+  return tasks;
+};
+// Generate tasks for lanes
+const generateLaneTasks = (laneCount: number) => {
+  return Array.from({ length: laneCount }, () =>
+    generateRandomTasks({ amount: Math.floor(Math.random() * 3) + 1 })
+  );
+};
+
+// Users with tasks
+const users = computed<Entity[]>(() => {
+  const userNames = ['Mickey', 'Minnie', 'Goofy', 'Pluto', 'Donald', 'Aladdin', 'Hercules', 'Ariel', 'Pinocchio', 'Robin Hood'];
+
+  return userNames.map((name, index) => {
+    const laneCount = name.length - 4;
+    const laneTasks = generateLaneTasks(5);
+
+    return {
+      label: name,
+      id: index.toString(),
+      collapsed: collapsedUsers.value.includes(name),
+      lanes: Array.from({ length: laneCount }, (_, laneIndex) => ({
+        label: `Lane ${laneIndex}`,
+        id: `${index}-${laneIndex}`,
+        tasks: laneTasks[laneIndex]
+      }))
+    };
+  });
+});
+
+// Projects structure
+const projects = computed<Entity[]>(() => {
+  const randomNumbers = [3, 3, 2, 6, 3, 2, 5, 4, 3, 2];
+
+  return Array.from({ length: 10 }, (_, index) => {
+    const laneCount = randomNumbers[index];
+    const laneTasks = generateLaneTasks(5);
+
+    return {
+      label: `Client ${index + 1}`,
+      id: index.toString(),
+      lanes: Array.from({ length: laneCount }, (_, laneIndex) => ({
+        label: `Project ${laneIndex}`,
+        id: `${index}-${laneIndex}`,
+        tasks: laneTasks[laneIndex]
+      }))
+    };
+  });
+});
+
+// Tasks list
+const tasks = computed<Task[]>(() => {
+  return generateRandomTasks({ amount: 20 });
+});
+
+// Active entities based on selected type
+const activeEntities = computed(() => {
+  switch (activeType.value) {
+    case 1:
+      return projects.value;
+    case 2:
+    case 3:
+      return users.value;
+    default:
+      return projects.value;
+  }
+});
+
+// Event handling
 onMounted(() => {
   eventBus.on('collapseEntity', (data: any) => {
     if (data.entity) {
@@ -82,106 +192,12 @@ onMounted(() => {
         collapsedUsers.value.push(data.entity);
       }
     }
-  })
-})
-
-
-const generateRandomTasks = (opts: { amount: number }) => {
-  let currentStartDay = 0;
-
-  return Array.from({ length: opts.amount }, (_, index) => {
-    const lengthInDays = Math.floor(Math.random() * 12) + 1;
-    const startDay = currentStartDay;
-    currentStartDay += lengthInDays;
-
-    return {
-      label: `Task ${index}`,
-      id: index.toString(),
-      lengthInDays,
-      startDay
-    } as Task;
   });
-};
 
-
-const collapsedUsers = ref(['Goofy']);
-
-const users = computed<Entity[]>(() => {
-
-  // const tasks = generateRandomTasks({ amount: 5});
-  return ['Mickey', 'Minnie', 'Goofy', 'Pluto', 'Donald', 'Aladdin', 'Hercules', 'Ariel', 'Pinocchio', 'Robin Hood'].map((entity, index) => {
-    return {
-      label: entity,
-      id: index.toString(),
-      collapsed: collapsedUsers.value.includes(entity),
-      lanes: Array.from({ length: entity.length - 4 }, (_, index) => {
-        return {
-          label: `Lane ${index}`,
-          id: index.toString(),
-          tasks: []
-        }
-      })
-    }
-  }) as Entity[]
-})
-
-const projects = computed<Entity[]>(() => {
-  const randomNumbers = [3, 3, 2, 6, 3, 2, 5, 4, 3, 2];
-  return ['Project 1', 'Project 2', 'Project 3', 'Project 4', 'Project 5', 'Project 6', 'Project 7', 'Project 8', 'Project 9', 'Project 10'].map((entity, index) => {
-    return {
-      label: entity,
-      id: index.toString(),
-      lanes: Array.from({ length: randomNumbers[index] }, (_, index) => {
-        return {
-          label: `Lane ${index}`,
-          id: index.toString(),
-        }
-      })
-    }
-  }) as Entity[]
-})
-
-const tasks = computed<Task[]>(() => {
-  return generateRandomTasks({ amount: 20 });
-})
-
-const usersTimeline = computed<Day[]>(() => {
-  const daysOfTheYear = Array.from({ length: 365 }, (_, index) => index);
-  return daysOfTheYear.map((day, index) => {
-    return {
-      label: `${day}`,
-      id: index.toString(),
-      entities: users.value
-    } as Day;
-  }) as Day[]
+  eventBus.on('toggle-taskbar', () => {
+    activeTaskbar.value = !activeTaskbar.value;
+  });
 });
-
-const projectTimeline = computed<Day[]>(() => {
-  const daysOfTheYear = Array.from({ length: 365 }, (_, index) => index);
-  return daysOfTheYear.map((day, index) => {
-    return {
-      label: `${day}`,
-      id: index.toString(),
-      entities: projects.value
-    } as Day;
-  }) as Day[]
-});
-
-const timeline = computed(() => {
-
-  switch (activeType.value) {
-    case 1:
-      return projectTimeline.value;
-    case 2:
-      return usersTimeline.value;
-    case 3:
-      return usersTimeline.value;
-    default:
-      return projectTimeline.value;
-  }
-})
-
-
 </script>
 
 <style lang="scss">
@@ -194,13 +210,34 @@ const timeline = computed(() => {
   --timeline-workload-height: var(--timeline-lane-height);
   --timeline-border-color: purple;
 
+  --day-color-odd: rgba(0, 0, 0, 0);
+  --day-color-even: rgba(0, 0, 0, .025);
+  --day-color-weekend-odd: rgba(0, 0, 0, .06);
+  --day-color-weekend-even: rgba(0, 0, 0, .075);
+
+  --timeline-workload-color-1: rgba(204, 115, 204, .25);
+  --timeline-workload-color-2: rgba(204, 115, 204, .5);
+  --timeline-workload-background-color: rgb(255, 255, 255, .75);
+
+  --timeline-taskbar-width: 400px;
+  --timeline-taskbar-width--collapsed: 80px;
+
   background-color: #c2c2c2;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
 
   &__page-header {
     position: sticky;
     top: 0;
     background-color: rgb(255, 255, 255);
+    z-index: 15;
+  }
+
+  &__wrapper {
+    flex-direction: row;
+    display: flex;
+    width: calc(100vw - var(--page-sidebar-width));
+
   }
 
   &__container {
@@ -211,20 +248,30 @@ const timeline = computed(() => {
       "timeline-sidebar timeline-header"
       "timeline-sidebar timeline-container";
     overflow: auto;
-    height:  calc(100vh - var(--page-header-height) - var(--timeline-header-height));
+    height: calc(100vh - var(--page-header-height) - var(--timeline-header-height));
     z-index: 5;
     padding-top: var(--timeline-header-height);
     align-content: start;
+
+    transition: width .3s ease-in-out;
+
+    &--has-active-taskbar{
+      width: calc(100vw - var(--page-sidebar-width) - var(--timeline-taskbar-width));
+    }
+    &--has-inactive-taskbar{
+      width: calc(100vw - var(--page-sidebar-width) - var(--timeline-taskbar-width--collapsed));
+    }
   }
 
+&__taskbar{
+  // width: var(--timeline-taskbar-width);
+}
   &__sidebar {
     width: var(--timeline-sidebar-width);
     position: sticky;
     left: 0;
-
     z-index: 12;
     grid-area: timeline-sidebar;
-
     min-height: calc(100vh - var(--page-header-height) - (var(--timeline-header-height) * 2));
     background-color: rgba(4, 4, 4, 0.75);
 
@@ -253,7 +300,6 @@ const timeline = computed(() => {
     grid-area: timeline-header;
     z-index: 10;
     transform: translateY(calc(var(--timeline-header-height) * -1));
-
     position: sticky;
     top: 0;
   }
