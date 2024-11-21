@@ -8,6 +8,7 @@ export const useDragHandle = (elementId: string) => {
   const startWidth = ref(0);
   const initialX = ref(0);
   const deltaX = ref(0);
+  const isDragging = ref(false);
 
   const handleDragStart = (event: PointerEvent, start: number = 0) => {
     console.log(`start`, start)
@@ -15,6 +16,7 @@ export const useDragHandle = (elementId: string) => {
     startWidth.value = start;
     document.addEventListener('pointermove', handleDragging);
     document.addEventListener('pointerup', handleDragEnd);
+    isDragging.value = true;
   };
 
   const handleDragging = (event: PointerEvent) => {
@@ -32,6 +34,7 @@ export const useDragHandle = (elementId: string) => {
     deltaX.value = 0;
     document.removeEventListener('pointermove', handleDragging);
     document.removeEventListener('pointerup', handleDragEnd);
+    isDragging.value = false;
   };
 
   onMounted(() => {
@@ -43,6 +46,7 @@ export const useDragHandle = (elementId: string) => {
   });
 
   return {
-    handleDragStart
+    handleDragStart,
+    isDragging
   };
 };

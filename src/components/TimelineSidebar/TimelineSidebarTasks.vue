@@ -27,6 +27,7 @@ defineProps({
   position: sticky; top: 0; left: 0;
 
   width: var(--timeline-taskbar-width);
+  transition: width .3s ease-in-out;
 
   &__task {
     background-color: #ffffff;

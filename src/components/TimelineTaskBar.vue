@@ -7,13 +7,13 @@
   })">
     <div :class="bemm('container')">
 
-      <div :class="bemm('header')" @click="toggleTaskBar()">
-        Tasks
-
-        <div :class="[bemm('drag-handle'), 'drag-handle']" @pointerdown="($e) => {
-          $e.preventDefault();
-          handleDragStart($e, props.width)
-        }"></div>
+      <div :class="bemm('header')">
+        <button @click="toggleTaskBar()">{{ isCollapsed ? '>' : '<' }}</button>
+        <span>Tasks</span>
+        <div v-if="!isCollapsed" :class="[bemm('drag-handle'), 'drag-handle']" @pointerdown="($e) => {
+              $e.preventDefault();
+              handleDragStart($e, props.width)
+            }"></div>
       </div>
       <div :class="bemm('tasks-container', {
         open: !isCollapsed
@@ -33,6 +33,7 @@ import { useDragHandle } from '../composables/useDragHandle';
 const bemm = useBemm('timeline-taskbar', {
   includeBaseClass: true
 });
+
 const { handleDragStart } = useDragHandle('timeline-taskbar');
 
 const props = defineProps({
@@ -62,9 +63,6 @@ watch(() => props.active, (newVal: boolean) => {
 const toggleTaskBar = () => {
   eventBus.emit('toggle-taskbar');
 }
-
-
-
 </script>
 
 <style lang="scss">
