@@ -2,21 +2,29 @@
   <div :class="bemm()">
     <div v-for="entity in entities" :key="entity.id" :class="bemm('entity')">
       <div :class="bemm('workload')" v-if="hasWorkload">
-        <div :class="bemm('workload-day')" v-for="(day, index) in days" :key="day.id"
-          :style="`--workload: ${getWorkload(index, entity.id)}`">
+        <div :class="bemm('workload-days')" :style="getDaysGridStyle()">
+          <div v-for="(day, index) in days"
+               :key="day.id"
+               :class="bemm('workload-day')"
+               :style="`--workload: ${getWorkload(index, entity.id)}`">
+          </div>
         </div>
       </div>
+
       <div :class="bemm('lanes', {
         collapsed: collapsedEntities.includes(entity.label)
       })" :style="`--entity-lanes-length: ${entity.lanes.length}`">
-        <div v-for="lane in entity.lanes" :key="lane.id" :class="bemm('lane')" v-if="!entity.collapsed">
-          <div :class="bemm('days')">
-            <div v-for="day in days" :key="day.id" :class="bemm('day')">
-              <template v-for="task in getLaneTasksForDay(lane, day)" :key="task.id">
-                <div :class="bemm('task')" :style="getTaskStyle(task)" v-if="isTaskStartDay(task, day)">
-                  {{ task.label }}
-                </div>
-              </template>
+        <div v-for="lane in entity.lanes"
+             :key="lane.id"
+             :class="bemm('lane')"
+             v-if="!entity.collapsed">
+          <div :class="bemm('days')" :style="getDaysGridStyle()">
+            <!-- Render tasks directly with absolute positioning -->
+            <div v-for="task in lane.tasks"
+                 :key="task.id"
+                 :class="bemm('task')"
+                 :style="getTaskStyle(task)">
+              {{ task.label }}
             </div>
           </div>
         </div>
@@ -26,13 +34,14 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, PropType } from 'vue'
+import { defineProps, PropType, computed } from 'vue'
 import * as b from 'bemm'
 import { Day, Entity, Task } from './Timeline.model';
+import { useCache } from '../composables/useCache';
 
 const bemm = b.useBemm('timeline');
 
-defineProps({
+const props = defineProps({
   days: {
     type: Array as PropType<Day[]>,
     required: true
@@ -50,33 +59,32 @@ defineProps({
     default: () => []
   }
 });
-import { useCache } from '../composables/useCache';
 
 const { getCachedValue } = useCache();
 
-const getWorkload = (index: number,id:string) => {
-  return getCachedValue(`workload-${index}-${id}`,index % 7 === 5 || index % 7 === 6 ? 0 : randomNumberBetween(10, 90));
+const totalDays = computed(() => props.days.length);
+
+const getDaysGridStyle = () => ({
+  '--total-days': totalDays.value,
+  'grid-template-columns': `repeat(${totalDays.value}, var(--timeline-day-width))`,
+});
+
+const getWorkload = (index: number, id: string) => {
+  return getCachedValue(
+    `workload-${index}-${id}`,
+    index % 7 === 5 || index % 7 === 6 ? 0 : randomNumberBetween(10, 90)
+  );
 };
 
 const randomNumberBetween = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
-const getLaneTasksForDay = (lane: any, day: Day) => {
-  return lane.tasks?.filter((task: Task) => {
-    const taskEndDay = task.startDay + task.lengthInDays;
-    return task.startDay <= parseInt(day.label) && taskEndDay > parseInt(day.label);
-  }) || [];
-};
-
-const isTaskStartDay = (task: Task, day: Day) => {
-  return task.startDay === parseInt(day.label);
-};
-
 const getTaskStyle = (task: Task) => {
   return {
-    '--task-length': `${task.lengthInDays}`,
-    '--task-start': `${task.startDay}`
+    '--task-length': task.lengthInDays,
+    'left': `calc(${task.startDay} * var(--timeline-day-width))`,
+    'width': `calc(${task.lengthInDays} * var(--timeline-day-width) - 0.2em)`
   };
 };
 </script>
@@ -91,9 +99,12 @@ const getTaskStyle = (task: Task) => {
 
   &__workload {
     background-color: rgba(255, 255, 255, .5);
+    width: 100%;
+  }
+
+  &__workload-days {
+    display: grid;
     width: fit-content;
-    display: flex;
-    @include global.days();
   }
 
   &__workload-day {
@@ -124,25 +135,21 @@ const getTaskStyle = (task: Task) => {
     height: calc(var(--timeline-lane-height) * var(--entity-lanes-length));
     transition: all .3s ease-in-out;
     clip-path: inset(0 0 0 0);
+
     &--collapsed {
       height: 0px;
       transition: all .3s ease-in-out;
-
       clip-path: inset(0 0 100% 0);
     }
   }
 
   &__days {
-    display: flex;
-    flex-direction: row;
-    height: 100%;
-    @include global.days();
-  }
-
-  &__day {
-    width: var(--timeline-day-width, 100px);
-    height: 100%;
+    display: grid;
     position: relative;
+    height: 100%;
+    width: calc(var(--total-days) * var(--timeline-day-width));
+
+    @include global.days();
   }
 
   &__task {
@@ -152,11 +159,10 @@ const getTaskStyle = (task: Task) => {
     box-shadow: 0 0 0 2px rgba(204, 115, 204, 1) inset;
     border-radius: 1em;
     padding: 1em;
-    margin: .5em .1em;
+    margin: .5em 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    width: calc(var(--task-length, 1) * var(--timeline-day-width, 100px) - .2em);
   }
 }
 </style>
