@@ -26,6 +26,8 @@ defineProps({
 .timeline-sidebar-tasks {
   position: sticky; top: 0; left: 0;
 
+  width: var(--timeline-taskbar-width);
+
   &__task {
     background-color: #ffffff;
     width: 100%;

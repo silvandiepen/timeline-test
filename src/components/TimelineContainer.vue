@@ -11,30 +11,22 @@
       <div :class="bemm('wrapper')">
 
 
-    <TimelineTaskBar :class="bemm('taskbar')" v-if="activeType == 2"  :active="activeTaskbar">
+    <TimelineTaskBar :class="bemm('taskbar')" :active="activeType == 2"  :collapsed="activeTaskbar">
       <TimelineSidebarTasks :tasks="tasks" />
     </TimelineTaskBar>
 
 
 
       <div :class="bemm('container',{
-      'has-active-taskbar': activeTaskbar && activeType === 2,
-      'has-inactive-taskbar': !activeTaskbar && activeType === 2
+      'has-active-taskbar': !activeTaskbar && activeType === 2,
+      'has-inactive-taskbar': activeTaskbar && activeType === 2
     })">
         <template v-if="activeType === 2">
           <TimelineSidebarHeader type="users" :class="bemm('sidebar-header', 'users')" />
           <TimelineSidebarContainer :class="bemm('sidebar', 'users')">
-            <TimelineSidebarUsers :entities="users" />
+            <TimelineSidebarUsers :entities="users" :collapsedEntities="collapsedUsers" />
           </TimelineSidebarContainer>
         </template>
-        <!--
-      <template v-if="activeType === 2">
-        <TimelineSidebarHeader type="tasks" :class="bemm('sidebar-header', 'tasks')" />
-        <TimelineSidebarContainer :class="bemm('sidebar', 'tasks')">
-          <TimelineSidebarTasks :tasks="tasks" />
-        </TimelineSidebarContainer>
-      </template> -->
-
         <template v-if="activeType === 1">
           <TimelineSidebarHeader type="project" :class="bemm('sidebar-header', 'project')" />
           <TimelineSidebarContainer :class="bemm('sidebar', 'project')">
@@ -45,7 +37,9 @@
         <TimelineHeader :days="timelineDays" :class="bemm('timeline-header')" />
         <div :class="bemm('timeline-container')">
           <Timeline :days="timelineDays" :entities="activeEntities" :class="bemm('timeline')"
-            :hasWorkload="activeType === 2" />
+            :hasWorkload="activeType === 2"
+            :collapsedEntities="collapsedUsers"
+            />
         </div>
       </div>
     </div>
@@ -67,9 +61,16 @@ import TimelineSidebarProjects from './TimelineSidebar/TimelineSidebarProjects.v
 import TimelineTaskBar from './TimelineTaskBar.vue';
 import { eventBus } from '../eventBus';
 
+import { useCache } from '../composables/useCache';
+
+
 const bemm = useBemm('timeline-container', {
   includeBaseClass: true
 });
+const { getCachedValue } = useCache();
+
+
+
 
 const activeType = ref(1);
 const activeTaskbar = ref(false);
@@ -116,24 +117,23 @@ const generateRandomTasks = (opts: { amount: number }) => {
   return tasks;
 };
 // Generate tasks for lanes
-const generateLaneTasks = (laneCount: number) => {
-  return Array.from({ length: laneCount }, () =>
-    generateRandomTasks({ amount: Math.floor(Math.random() * 3) + 1 })
+const generateLaneTasks = (laneCount: number, id: string) => {
+  return Array.from({ length: laneCount }, (_,index) =>
+    getCachedValue(`randomTasks-${laneCount}-${id}-${index}`, generateRandomTasks({ amount: Math.floor(Math.random() * 3) + 1 }))
   );
 };
 
 // Users with tasks
 const users = computed<Entity[]>(() => {
-  const userNames = ['Mickey', 'Minnie', 'Goofy', 'Pluto', 'Donald', 'Aladdin', 'Hercules', 'Ariel', 'Pinocchio', 'Robin Hood'];
+  const userNames = getCachedValue('users', ['Mickey', 'Minnie', 'Goofy', 'Pluto', 'Donald', 'Aladdin', 'Hercules', 'Ariel', 'Pinocchio', 'Robin Hood']);
 
   return userNames.map((name, index) => {
     const laneCount = name.length - 4;
-    const laneTasks = generateLaneTasks(5);
+    const laneTasks = generateLaneTasks(5,`user-${index}`);
 
     return {
       label: name,
       id: index.toString(),
-      collapsed: collapsedUsers.value.includes(name),
       lanes: Array.from({ length: laneCount }, (_, laneIndex) => ({
         label: `Lane ${laneIndex}`,
         id: `${index}-${laneIndex}`,
@@ -145,11 +145,11 @@ const users = computed<Entity[]>(() => {
 
 // Projects structure
 const projects = computed<Entity[]>(() => {
-  const randomNumbers = [3, 3, 2, 6, 3, 2, 5, 4, 3, 2];
+  const randomNumbers = getCachedValue('project-lanes',[3, 3, 2, 6, 3, 2, 5, 4, 3, 2]);
 
   return Array.from({ length: 10 }, (_, index) => {
     const laneCount = randomNumbers[index];
-    const laneTasks = generateLaneTasks(5);
+    const laneTasks = generateLaneTasks(10, `project-${index}`);
 
     return {
       label: `Client ${index + 1}`,
@@ -165,7 +165,7 @@ const projects = computed<Entity[]>(() => {
 
 // Tasks list
 const tasks = computed<Task[]>(() => {
-  return generateRandomTasks({ amount: 20 });
+  return getCachedValue('random-tasks',generateRandomTasks({ amount: 20 }));
 });
 
 // Active entities based on selected type
@@ -252,8 +252,8 @@ onMounted(() => {
     z-index: 5;
     padding-top: var(--timeline-header-height);
     align-content: start;
-
     transition: width .3s ease-in-out;
+    width: calc(100vw - var(--page-sidebar-width));
 
     &--has-active-taskbar{
       width: calc(100vw - var(--page-sidebar-width) - var(--timeline-taskbar-width));

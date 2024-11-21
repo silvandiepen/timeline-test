@@ -1,17 +1,18 @@
 <template>
   <div :class="bemm('', {
     active: isActive,
-    inactive: !isActive
+    inactive: !isActive,
+    collapsed: isCollapsed,
+    open: !isCollapsed
   })">
 
-    <div :class="bemm('header')">
+    <div :class="bemm('header')" @click="toggleTaskBar()">
       Tasks
-      <button @click="toggleTaskBar()">{{isActive ? 'collapse' : 'open'}}</button>
     </div>
-    <div :class="bemm('container')">
-      <template v-if="isActive">
-        <slot></slot>
-      </template>
+    <div :class="bemm('container', {
+      open: !isCollapsed
+    })">
+      <slot></slot>
     </div>
   </div>
 </template>
@@ -27,11 +28,19 @@ const props = defineProps({
   active: {
     type: Boolean,
     default: false
+  },
+  collapsed: {
+    type: Boolean,
+    default: false
   }
 })
-const isActive = ref(props.active)
+const isActive = ref(props.active);
+const isCollapsed = ref(props.collapsed);
 
-watch(() => props.active, (newVal: boolean) => {
+watch(() =>props.collapsed, (newVal: boolean) => {
+  isCollapsed.value = newVal
+})
+watch(() =>props.active, (newVal: boolean) => {
   isActive.value = newVal
 })
 
@@ -45,19 +54,24 @@ const toggleTaskBar = () => {
 
 <style lang="scss">
 .timeline-taskbar {
-
   height: fit-content;
   z-index: 10;
-  background-color: blue;
-
   width: var(--timeline-taskbar-width);
-
   transition: width .3s ease-in-out;
-  &--inactive {
+
+  &--active.timeline-taskbar--collapsed {
     width: var(--timeline-taskbar-width--collapsed);
   }
 
-  &__header{
+  &--active.timeline-taskbar--open{
+    width: var(--timeline-taskbar-width);
+  }
+
+  &--inactive{
+    width: 0;
+  }
+
+  &__header {
     padding: 1em;
   }
 
@@ -65,6 +79,13 @@ const toggleTaskBar = () => {
     background-color: #ebdea5;
     display: flex;
     flex-direction: column;
+    clip-path: inset(0 0 100% 0%);
+    transition: clip-path .3s ease-in-out;
+
+    &--open {
+      transition: clip-path .3s ease-in-out;
+      clip-path: inset(0 0 0 0);
+    }
   }
 }
 </style>

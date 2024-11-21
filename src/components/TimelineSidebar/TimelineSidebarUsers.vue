@@ -3,11 +3,13 @@
     <div v-for="entity in entities" :key="entity.id" :class="bemm('entity')">
       <div :class="bemm('header')">
         <h3> {{ entity.label }}</h3>
-        <button @click="collapseEntity(entity.label)">{{ entity.collapsed ? 'Show' : 'Collapse' }}</button>
+        <button @click="collapseEntity(entity.label)">{{ collapsedEntities.includes(entity.label) ? 'Show' : 'Collapse' }}</button>
       </div>
-      <div :class="bemm('lane-spacer', entity.collapsed ? 'is-collapsed' : '')"
+      <div :class="bemm('lane-spacer',
+        {
+          'is-collapsed': collapsedEntities.includes(entity.label)
+        })"
         :style="`--entity-lanes: ${entity.lanes.length}`">
-
       </div>
     </div>
   </div>
@@ -24,12 +26,15 @@ defineProps({
   entities: {
     type: Array as PropType<Entity[]>,
     required: true
+  },
+  collapsedEntities: {
+    type: Array as PropType<string[]>,
+    default: () => []
   }
 })
 
 
 const collapseEntity = (value: string) => {
-
   eventBus.emit('collapseEntity', { entity: value })
 }
 
@@ -62,6 +67,13 @@ const collapseEntity = (value: string) => {
 
   &__lane-spacer {
     height: calc(var(--timeline-lane-height) * var(--entity-lanes));
+transition: height .3s ease-in-out;
+    &--is-collapsed {
+      transition: height .3s ease-in-out;
+
+      height: 0;
+
+    }
   }
 
 
