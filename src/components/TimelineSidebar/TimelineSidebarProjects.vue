@@ -37,11 +37,13 @@ defineProps({
     font-size: .66em;
     font-weight: bold;
     color: black;
-    position: absolute;
-    top: 0;
+    position: sticky;
+    top: 10px;
     transform: translateY(-50%);
     background-color: white;
-
+height: 20px;
+margin-bottom: -20px;
+width: fit-content;
   }
 
   &__entity {
@@ -52,6 +54,7 @@ defineProps({
 
     &:nth-child(1) .timeline-sidebar-projects__header {
       padding-block: .5em;
+      top: 0;
       transform: translateY(0%);
     }
   }
