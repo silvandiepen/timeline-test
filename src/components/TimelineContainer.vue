@@ -90,28 +90,35 @@ const timelineDays = computed<Day[]>(() => {
 });
 
 // Generate random tasks helper
-const generateRandomTasks = (opts: { amount: number }) => {
+const generateRandomTasks = (opts: { amount: number, noOverlap?: boolean }) => {
   const tasks = [];
   let currentStartDay = 0;
 
-  for (let i = 0; i < opts.amount; i++) {
+  for (let i = 1; i < opts.amount + 1; i++) {
     const lengthInDays = Math.floor(Math.random() * 12) + 1;
     const maxStartDay = 365 - lengthInDays;
 
-    if (currentStartDay > maxStartDay) {
-      break; // No more tasks can fit within the remaining days
+    if (opts.noOverlap) {
+      if (currentStartDay > maxStartDay) {
+        break; // No more tasks can fit within the remaining days
+      }
+      const startDay = currentStartDay;
+      tasks.push({
+        label: `Task ${i}`,
+        id: i.toString(),
+        lengthInDays,
+        startDay
+      });
+      currentStartDay = startDay + lengthInDays;
+    } else {
+      const startDay = Math.floor(Math.random() * (maxStartDay + 1));
+      tasks.push({
+        label: `Task ${i}`,
+        id: i.toString(),
+        lengthInDays,
+        startDay
+      });
     }
-
-    const startDay = Math.floor(Math.random() * (maxStartDay - currentStartDay + 1)) + currentStartDay;
-
-    tasks.push({
-      label: `Task ${i}`,
-      id: i.toString(),
-      lengthInDays,
-      startDay
-    });
-
-    currentStartDay = startDay + lengthInDays;
   }
 
   return tasks;
@@ -149,13 +156,13 @@ const projects = computed<Entity[]>(() => {
 
   return Array.from({ length: 10 }, (_, index) => {
     const laneCount = randomNumbers[index];
-    const laneTasks = generateLaneTasks(10, `project-${index}`);
+    const laneTasks = generateLaneTasks(10, `project-${index + 1}`);
 
     return {
       label: `Client ${index + 1}`,
       id: index.toString(),
       lanes: Array.from({ length: laneCount }, (_, laneIndex) => ({
-        label: `Project ${laneIndex}`,
+        label: `Project ${index + 1}-${laneIndex + 1}`,
         id: `${index}-${laneIndex}`,
         tasks: laneTasks[laneIndex]
       }))

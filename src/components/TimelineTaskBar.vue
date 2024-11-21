@@ -37,10 +37,10 @@ const props = defineProps({
 const isActive = ref(props.active);
 const isCollapsed = ref(props.collapsed);
 
-watch(() =>props.collapsed, (newVal: boolean) => {
+watch(() => props.collapsed, (newVal: boolean) => {
   isCollapsed.value = newVal
 })
-watch(() =>props.active, (newVal: boolean) => {
+watch(() => props.active, (newVal: boolean) => {
   isActive.value = newVal
 })
 
@@ -54,25 +54,32 @@ const toggleTaskBar = () => {
 
 <style lang="scss">
 .timeline-taskbar {
-  height: fit-content;
+  height: calc(100vh - var(--page-header-height) - var(--timeline-header-height));
   z-index: 10;
   width: var(--timeline-taskbar-width);
   transition: width .3s ease-in-out;
+  overflow: scroll;
 
   &--active.timeline-taskbar--collapsed {
     width: var(--timeline-taskbar-width--collapsed);
+    overflow: hidden;
   }
 
-  &--active.timeline-taskbar--open{
+  &--active.timeline-taskbar--open {
     width: var(--timeline-taskbar-width);
   }
 
-  &--inactive{
+  &--inactive {
     width: 0;
+    overflow: hidden;
   }
 
   &__header {
     padding: 1em;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: black;
   }
 
   &__container {

@@ -35,13 +35,13 @@ defineProps({
     display: flex; align-items: center; justify-content: center;
   }
   &__day-label{
-    width: 2em;
-    height: 2em; text-align: center; font-size: .66em;
-    background-color: rgb(255, 255, 255);
+    width: 3em;
+    height: 3em; text-align: center; font-size: .5em;
+    background-color: rgb(255, 255, 255,.25);
     color: black;
     font-weight: bold;
-    border-radius: 2px;
-    line-height: 2em;
+    border-radius: 50%;
+    line-height: 3em;
   }
 }
 </style>
