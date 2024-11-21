@@ -12,26 +12,49 @@
     var(--day-color-odd, #f0f0f0) calc(var(--timeline-day-width) * 4),
     var(--day-color-odd, #f0f0f0) calc(var(--timeline-day-width) * 5 - 1px),
     var(--day-color-weekend-odd, #d0d0d0) calc(var(--timeline-day-width) * 5),
-    var(--day-color-weekend-odd, #d0d0d0) calc(var(--timeline-day-width) * 6 - 1px),
+    var(--day-color-weekend-odd, #d0d0d0)
+      calc(var(--timeline-day-width) * 6 - 1px),
     var(--day-color-weekend-even, #c0c0c0) calc(var(--timeline-day-width) * 6),
-    var(--day-color-weekend-even, #c0c0c0) calc(var(--timeline-day-width) * 7 - 1px)
+    var(--day-color-weekend-even, #c0c0c0)
+      calc(var(--timeline-day-width) * 7 - 1px)
   );
   background-size: calc(var(--timeline-day-width) * 7) 100%;
   background-repeat: repeat-x;
 }
 
 @mixin days_lines {
-  background-image: linear-gradient( to right, transparent 0, transparent calc(100% - 2px), black 100%);
+  background-image: linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(100% - 2px),
+    black 100%
+  );
   background-size: var(--timeline-day-width) 100%;
   background-repeat: repeat-x;
 }
 
-:root{
+:root {
   --space: 1em;
 }
 
-.label{
+.label {
   background-color: white;
-  padding: .5em .75em;
+  padding: 0.5em 0.75em;
   color: black;
+}
+
+.drag-handle {
+  width: 0.33em;
+  height: 3em;
+  position: absolute;
+  background-color: red;
+  cursor: grab;
+  border-radius: .2em;
+
+  background-color: rgba(0,0,0,.25);
+
+  &:focus {
+    background-color: rgba(0,0,0,.1);
+    cursor: grabbing;
+  }
 }

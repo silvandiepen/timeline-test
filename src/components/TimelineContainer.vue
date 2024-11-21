@@ -1,26 +1,24 @@
 <template>
 
-  <div :class="bemm()">
+  <div :class="bemm()" :style="{ '--sidebar-width': sidebarWidth + 'px', '--taskbar-width': taskbarWidth + 'px' }">
 
     <TimelinePageHeader :class="bemm('page-header')">
-        <button v-for="type in types" :key="type.id" :class="bemm('button', type.active ? 'active' : 'inactive')"
-          @click="activeType = type.id">
-          {{ type.label }}
-        </button>
-      </TimelinePageHeader>
-      <div :class="bemm('wrapper')">
+      <button v-for="type in types" :key="type.id" :class="bemm('button', type.active ? 'active' : 'inactive')"
+        @click="activeType = type.id">
+        {{ type.label }}
+      </button>
+    </TimelinePageHeader>
 
+    <div :class="bemm('wrapper')">
 
-    <TimelineTaskBar :class="bemm('taskbar')" :active="activeType == 2"  :collapsed="activeTaskbar">
-      <TimelineSidebarTasks :tasks="tasks" />
-    </TimelineTaskBar>
+      <TimelineTaskBar :class="bemm('taskbar')" :active="activeType == 2" :collapsed="activeTaskbar">
+        <TimelineSidebarTasks :tasks="tasks" />
+      </TimelineTaskBar>
 
-
-
-      <div :class="bemm('container',{
-      'has-active-taskbar': !activeTaskbar && activeType === 2,
-      'has-inactive-taskbar': activeTaskbar && activeType === 2
-    })">
+      <div :class="bemm('container', {
+        'has-active-taskbar': !activeTaskbar && activeType === 2,
+        'has-inactive-taskbar': activeTaskbar && activeType === 2
+      })">
         <template v-if="activeType === 2">
           <TimelineSidebarHeader type="users" :class="bemm('sidebar-header', 'users')" />
           <TimelineSidebarContainer :class="bemm('sidebar', 'users')">
@@ -37,9 +35,7 @@
         <TimelineHeader :days="timelineDays" :class="bemm('timeline-header')" />
         <div :class="bemm('timeline-container')">
           <Timeline :days="timelineDays" :entities="activeEntities" :class="bemm('timeline')"
-            :hasWorkload="activeType === 2"
-            :collapsedEntities="collapsedUsers"
-            />
+            :hasWorkload="activeType === 2" :collapsedEntities="collapsedUsers" />
         </div>
       </div>
     </div>
@@ -69,6 +65,10 @@ const bemm = useBemm('timeline-container', {
 });
 const { getCachedValue } = useCache();
 
+
+
+const taskbarWidth = ref(400);
+const sidebarWidth = ref(400);
 
 
 
@@ -125,7 +125,7 @@ const generateRandomTasks = (opts: { amount: number, noOverlap?: boolean }) => {
 };
 // Generate tasks for lanes
 const generateLaneTasks = (laneCount: number, id: string) => {
-  return Array.from({ length: laneCount }, (_,index) =>
+  return Array.from({ length: laneCount }, (_, index) =>
     getCachedValue(`randomTasks-${laneCount}-${id}-${index}`, generateRandomTasks({ amount: Math.floor(Math.random() * 3) + 1 }))
   );
 };
@@ -136,7 +136,7 @@ const users = computed<Entity[]>(() => {
 
   return userNames.map((name, index) => {
     const laneCount = name.length - 4;
-    const laneTasks = generateLaneTasks(5,`user-${index}`);
+    const laneTasks = generateLaneTasks(5, `user-${index}`);
 
     return {
       label: name,
@@ -152,7 +152,7 @@ const users = computed<Entity[]>(() => {
 
 // Projects structure
 const projects = computed<Entity[]>(() => {
-  const randomNumbers = getCachedValue('project-lanes',[3, 3, 2, 6, 3, 2, 5, 4, 3, 2]);
+  const randomNumbers = getCachedValue('project-lanes', [3, 3, 2, 6, 3, 2, 5, 4, 3, 2]);
 
   return Array.from({ length: 10 }, (_, index) => {
     const laneCount = randomNumbers[index];
@@ -172,7 +172,7 @@ const projects = computed<Entity[]>(() => {
 
 // Tasks list
 const tasks = computed<Task[]>(() => {
-  return getCachedValue('random-tasks',generateRandomTasks({ amount: 20 }));
+  return getCachedValue('random-tasks', generateRandomTasks({ amount: 20 }));
 });
 
 // Active entities based on selected type
@@ -204,6 +204,10 @@ onMounted(() => {
   eventBus.on('toggle-taskbar', () => {
     activeTaskbar.value = !activeTaskbar.value;
   });
+
+  eventBus.on('drag-handle',(d:any)=>{
+    console.log(d)
+  })
 });
 </script>
 
@@ -211,13 +215,12 @@ onMounted(() => {
 .timeline-container {
   --timeline-day-width: 30px;
   --timeline-header-height: 80px;
-  --timeline-width: 400vw;
-  --timeline-sidebar-width: 400px;
+  --timeline-sidebar-width: var(--sidebar-width);
   --timeline-lane-height: 80px;
   --timeline-workload-height: var(--timeline-lane-height);
   --timeline-border-color: purple;
 
-  --day-color-odd: rgba(0, 0, 0, 0);
+  --day-color-odd: rgba(150, 14, 14, 0);
   --day-color-even: rgba(0, 0, 0, .025);
   --day-color-weekend-odd: rgba(0, 0, 0, .06);
   --day-color-weekend-even: rgba(0, 0, 0, .075);
@@ -226,7 +229,7 @@ onMounted(() => {
   --timeline-workload-color-2: rgba(204, 115, 204, .5);
   --timeline-workload-background-color: rgb(255, 255, 255, .75);
 
-  --timeline-taskbar-width: 400px;
+  --timeline-taskbar-width: var(--taskbar-width);
   --timeline-taskbar-width--collapsed: 80px;
 
   background-color: #c2c2c2;
@@ -250,6 +253,7 @@ onMounted(() => {
   &__container {
     position: relative;
     display: grid;
+    z-index: 1;
     grid-template-areas:
       "timeline-sidebar-header timeline-container"
       "timeline-sidebar timeline-header"
@@ -262,17 +266,19 @@ onMounted(() => {
     transition: width .3s ease-in-out;
     width: calc(100vw - var(--page-sidebar-width));
 
-    &--has-active-taskbar{
+    &--has-active-taskbar {
       width: calc(100vw - var(--page-sidebar-width) - var(--timeline-taskbar-width));
     }
-    &--has-inactive-taskbar{
+
+    &--has-inactive-taskbar {
       width: calc(100vw - var(--page-sidebar-width) - var(--timeline-taskbar-width--collapsed));
     }
   }
 
-&__taskbar{
-  // width: var(--timeline-taskbar-width);
-}
+  &__taskbar {
+    position: relative;
+  }
+
   &__sidebar {
     width: var(--timeline-sidebar-width);
     position: sticky;
@@ -281,6 +287,7 @@ onMounted(() => {
     grid-area: timeline-sidebar;
     min-height: calc(100vh - var(--page-header-height) - (var(--timeline-header-height) * 2));
     background-color: rgba(4, 4, 4, 0.75);
+    z-index: 20;
 
     &--tasks {
       top: 0;
@@ -291,11 +298,11 @@ onMounted(() => {
     width: var(--timeline-sidebar-width);
     height: var(--timeline-header-height);
     grid-area: timeline-sidebar-header;
-    z-index: 50;
     position: sticky;
     left: 0;
     top: 0;
     transform: translateY(calc(var(--timeline-header-height) * -1));
+    z-index: 40;
   }
 
   &__timeline {
@@ -309,11 +316,14 @@ onMounted(() => {
     transform: translateY(calc(var(--timeline-header-height) * -1));
     position: sticky;
     top: 0;
+    z-index: 30;
   }
 
   &__timeline-container {
     grid-area: timeline-container;
     position: relative;
+    z-index: 10;
+
   }
 
   &__button {
