@@ -37,7 +37,7 @@ const getMonthName = (month: number) => {
 <style lang="scss">
 .timeline-header {
 
-  background-color: #4fbff7;
+  background-color: rgba(#4fbff7,.75);
   @include global.days();
   display: flex;
 
