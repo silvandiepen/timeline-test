@@ -42,8 +42,8 @@
           </TimelineSidebarContainer>
         </template>
 
-        <TimelineHeader :days="timelineDays" :class="bemm('timeline-header')" />
         <div :class="bemm('timeline-container')">
+          <TimelineHeader :days="timelineDays" :class="bemm('timeline-header')" />
           <Timeline :days="timelineDays" :entities="activeEntities" :class="bemm('timeline')"
             :hasWorkload="activeType === 2" :collapsedEntities="collapsedUsers" />
         </div>
@@ -297,12 +297,10 @@ onMounted(() => {
     z-index: 1;
     grid-template-areas:
       "timeline-sidebar-header timeline-container"
-      "timeline-sidebar timeline-header"
       "timeline-sidebar timeline-container";
     overflow: auto;
     height: calc(100vh - var(--page-header-height) - var(--timeline-header-height));
     z-index: 5;
-    padding-top: var(--timeline-header-height);
     align-content: start;
     transition: width .3s ease-in-out;
     width: calc(100vw - var(--page-sidebar-width));
@@ -342,7 +340,7 @@ onMounted(() => {
     position: sticky;
     left: 0;
     top: 0;
-    transform: translateY(calc(var(--timeline-header-height) * -1));
+    // transform: translateY(calc(var(--timeline-header-height) * -1));
     z-index: 40;
   }
 
@@ -354,7 +352,7 @@ onMounted(() => {
     height: var(--timeline-header-height);
     grid-area: timeline-header;
     z-index: 10;
-    transform: translateY(calc(var(--timeline-header-height) * -1));
+    // transform: translateY(calc(var(--timeline-header-height) * -1));
     position: sticky;
     top: 0;
     z-index: 30;

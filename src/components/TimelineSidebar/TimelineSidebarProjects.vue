@@ -41,9 +41,9 @@ defineProps({
     top: 10px;
     transform: translateY(-50%);
     background-color: white;
-height: 20px;
-margin-bottom: -20px;
-width: fit-content;
+    height: 20px;
+    margin-bottom: -20px;
+    width: fit-content;
   }
 
   &__entity {
