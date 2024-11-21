@@ -36,6 +36,9 @@ defineProps({
     padding: 1em;
     color: black;
     font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
 }

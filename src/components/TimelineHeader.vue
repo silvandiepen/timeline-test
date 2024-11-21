@@ -1,7 +1,8 @@
 <template>
   <div :class="bemm()">
     <div v-for="day in days" :key="day.id" :class="bemm('day',{
-      'first-day': day.label == '1'
+      'first-day': day.label == '1',
+      'today': day.isToday
     })">
       <div :class="bemm('month-label')" v-if="day.label == '1'">
         {{ getMonthName(day.month) }}
@@ -28,6 +29,7 @@ defineProps({
   }
 })
 
+
 const getMonthName = (month: number) => {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return months[month - 1];
@@ -48,6 +50,11 @@ const getMonthName = (month: number) => {
 
     &--first-day{
       box-shadow: 2px 0 0 rgba(0,0,0,.25) inset;
+    }
+    &--today{
+     .timeline-header__day-label{
+      background-color: rgb(255, 213, 0);
+     }
     }
   }
   &__day-label{

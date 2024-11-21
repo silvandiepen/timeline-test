@@ -4,12 +4,12 @@
     :style="{ '--sidebar-width': sidebarWidth + 'px', '--taskbar-width': taskbarWidth + 'px', '--zoom': zoom }">
 
     <TimelinePageHeader :class="bemm('page-header')">
-<div></div>
+      <div></div>
       <div :class="bemm('type-group')">
         <button v-for="type in types" :key="type.id" :class="bemm('button', type.active ? 'active' : 'inactive')"
-        @click="activeType = type.id">
-        {{ type.label }}
-      </button>
+          @click="activeType = type.id">
+          {{ type.label }}
+        </button>
 
       </div>
       <div :class="bemm('actions')">
@@ -25,7 +25,7 @@
         <TimelineSidebarTasks :tasks="tasks" />
       </TimelineTaskBar>
 
-      <div :class="bemm('container', {
+      <div ref="scrollContainer" :class="bemm('container', {
         'has-active-taskbar': !activeTaskbar && activeType === 2,
         'has-inactive-taskbar': activeTaskbar && activeType === 2
       })">
@@ -43,7 +43,6 @@
         </template>
 
         <div :class="bemm('timeline-container')">
-          <TimelineHeader :days="timelineDays" :class="bemm('timeline-header')" />
           <Timeline :days="timelineDays" :entities="activeEntities" :class="bemm('timeline')"
             :hasWorkload="activeType === 2" :collapsedEntities="collapsedUsers" />
         </div>
@@ -54,10 +53,10 @@
 
 <script lang="ts" setup>
 import { useBemm } from 'bemm'
-import { computed, onMounted, ref } from 'vue';
-import { Day, Entity, Task } from './Timeline.model';
+import { computed, onMounted, ref, nextTick } from 'vue';
+import { Day, Entity, Task, taskNames, exampleUserNames, clientNames, projectNames } from './Timeline.model';
+
 import TimelineSidebarContainer from './TimelineSidebar/TimelineSidebarContainer.vue';
-import TimelineHeader from './TimelineHeader.vue';
 import Timeline from './Timeline.vue';
 import TimelinePageHeader from './TimelinePageHeader.vue';
 import TimelineSidebarHeader from './TimelineSidebar/TimelineSidebarHeader.vue';
@@ -65,8 +64,8 @@ import TimelineSidebarUsers from './TimelineSidebar/TimelineSidebarUsers.vue';
 import TimelineSidebarTasks from './TimelineSidebar/TimelineSidebarTasks.vue';
 import TimelineSidebarProjects from './TimelineSidebar/TimelineSidebarProjects.vue';
 import TimelineTaskBar from './TimelineTaskBar.vue';
-import { eventBus } from '../eventBus';
 
+import { eventBus } from '../eventBus';
 import { useCache } from '../composables/useCache';
 
 
@@ -75,6 +74,7 @@ const bemm = useBemm('timeline-container', {
 });
 const { getCachedValue } = useCache();
 
+const scrollContainer = ref<HTMLElement | null>(null);
 const taskbarWidth = ref(400);
 const sidebarWidth = ref(400);
 
@@ -86,10 +86,26 @@ const collapsedUsers = ref(['Goofy']);
 // Zoom
 const zoom = ref(1);
 const zoomIn = () => {
-  zoom.value += 0.5;
+  const centerDay = getCenterDay();
+
+  console.log(centerDay)
+
+  if (centerDay) {
+    zoom.value += 0.5;
+    setTimeout(() => {
+      scrollToDay(centerDay);
+    }, 100);
+  }
 };
 const zoomOut = () => {
-  zoom.value -= 0.5;
+  const centerDay = getCenterDay();
+
+  if (centerDay) {
+    zoom.value -= 0.5;
+    setTimeout(() => {
+      scrollToDay(centerDay);
+    }, 100);
+  }
 };
 const canZoomIn = computed(() => zoom.value < 3);
 const canZoomOut = computed(() => zoom.value > 0.5);
@@ -103,71 +119,116 @@ const types = computed(() => [
 // Generate timeline days
 const timelineDays = computed<Day[]>(() => {
   const days = [];
-  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; // Days in each month
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setFullYear(today.getFullYear() - 1);
+  const endDate = new Date(today);
+  endDate.setFullYear(today.getFullYear() + 1);
 
+  const isToday = (date: Date) => {
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+  };
+
+  let currentDate = new Date(startDate);
   let dayIndex = 0;
-  for (let month = 0; month < 12; month++) {
-    for (let day = 1; day <= daysInMonth[month]; day++) {
-      days.push({
-        label: day.toString(),
-        id: dayIndex.toString(),
-        month: month + 1,
-      });
-      dayIndex++;
-    }
+
+  while (currentDate <= endDate) {
+    days.push({
+      label: currentDate.getDate().toString(),
+      id: dayIndex.toString(),
+      month: currentDate.getMonth() + 1,
+      year: currentDate.getFullYear(),
+      isToday: isToday(currentDate),
+      date: new Date(currentDate)
+    });
+
+    currentDate.setDate(currentDate.getDate() + 1);
+    dayIndex++;
   }
 
   return days;
 });
 
 // Generate random tasks helper
-const generateRandomTasks = (opts: { amount: number, noOverlap?: boolean }) => {
-  const tasks = [];
-  let currentStartDay = 0;
+const generateRandomTasks = (opts: { amount: number, noOverlap?: boolean, timelineDays: Day[] }): Task[] => {
+  const getRandomTaskName = (index: number) => {
+    if (index < taskNames.length) return taskNames[index];
+    return `${taskNames[index % taskNames.length]} ${Math.floor(index / taskNames.length) + 1}`;
+  };
+
+  const tasks: Task[] = [];
+  const usedDays = new Set<number>();
 
   for (let i = 1; i < opts.amount + 1; i++) {
     const lengthInDays = Math.floor(Math.random() * 12) + 1;
-    const maxStartDay = 365 - lengthInDays;
+    const maxStartIndex = opts.timelineDays.length - lengthInDays;
+
+    if (maxStartIndex < 0) break;
+
+    let startDayIndex = Math.floor(Math.random() * (maxStartIndex + 1));
 
     if (opts.noOverlap) {
-      if (currentStartDay > maxStartDay) {
-        break; // No more tasks can fit within the remaining days
+      let overlap = true;
+      let attempts = 0;
+      const maxAttempts = 100;
+
+      while (overlap && attempts < maxAttempts) {
+        overlap = false;
+        for (let j = 0; j < lengthInDays; j++) {
+          if (usedDays.has(startDayIndex + j)) {
+            overlap = true;
+            startDayIndex = Math.floor(Math.random() * (maxStartIndex + 1));
+            break;
+          }
+        }
+        attempts++;
       }
-      const startDay = currentStartDay;
-      tasks.push({
-        label: `Task ${i}`,
-        id: i.toString(),
-        lengthInDays,
-        startDay
-      });
-      currentStartDay = startDay + lengthInDays;
-    } else {
-      const startDay = Math.floor(Math.random() * (maxStartDay + 1));
-      tasks.push({
-        label: `Task ${i}`,
-        id: i.toString(),
-        lengthInDays,
-        startDay
-      });
+
+      if (attempts === maxAttempts) continue;
+
+      for (let j = 0; j < lengthInDays; j++) {
+        usedDays.add(startDayIndex + j);
+      }
     }
+
+    const startDay = new Date(opts.timelineDays[startDayIndex].date);
+    tasks.push({
+      label: getRandomTaskName(i - 1),
+      id: i.toString(),
+      lengthInDays,
+      startDay,
+    });
   }
 
   return tasks;
 };
 // Generate tasks for lanes
-const generateLaneTasks = (laneCount: number, id: string) => {
-  return Array.from({ length: laneCount }, (_, index) =>
-    getCachedValue(`randomTasks-${laneCount}-${id}-${index}`, generateRandomTasks({ amount: Math.floor(Math.random() * 3) + 1 }))
-  );
+const generateLaneTasks = (laneCount: number, id: string): Task[] => {
+  return getCachedValue(`randomTasks-${laneCount}-${id}`, generateRandomTasks({ amount: Math.floor(Math.random() * 3) + 1, noOverlap: true, timelineDays: timelineDays.value }));
 };
+
+const getRandomUsers = (users: string[], min: number, max: number) => {
+  const numberOfUsers = Math.floor(Math.random() * (max - min + 1)) + min;
+  const shuffledUsers = users.sort(() => 0.5 - Math.random());
+  return shuffledUsers.slice(0, numberOfUsers);
+};
+
+const getRandomProjectName = () => {
+  return projectNames[Math.floor(Math.random() * projectNames.length)];
+};
+const getRandomClientName = () => {
+  return clientNames[Math.floor(Math.random() * clientNames.length)];
+};
+
 
 // Users with tasks
 const users = computed<Entity[]>(() => {
-  const userNames = getCachedValue('users', ['Mickey', 'Minnie', 'Goofy', 'Pluto', 'Donald', 'Aladdin', 'Hercules', 'Ariel', 'Pinocchio', 'Robin Hood']);
+  const userNames = getCachedValue('users', getRandomUsers(exampleUserNames, 5, 10));
 
   return userNames.map((name, index) => {
     const laneCount = name.length - 4;
-    const laneTasks = generateLaneTasks(5, `user-${index}`);
 
     return {
       label: name,
@@ -175,11 +236,13 @@ const users = computed<Entity[]>(() => {
       lanes: Array.from({ length: laneCount }, (_, laneIndex) => ({
         label: `Lane ${laneIndex}`,
         id: `${index}-${laneIndex}`,
-        tasks: laneTasks[laneIndex]
+        tasks: generateLaneTasks(20, `user-${index}-${laneIndex}`)
       }))
     };
   });
 });
+
+
 
 // Projects structure
 const projects = computed<Entity[]>(() => {
@@ -187,15 +250,14 @@ const projects = computed<Entity[]>(() => {
 
   return Array.from({ length: 10 }, (_, index) => {
     const laneCount = randomNumbers[index];
-    const laneTasks = generateLaneTasks(10, `project-${index + 1}`);
 
     return {
-      label: `Client ${index + 1}`,
+      label: getCachedValue(`client-${index}`, getRandomClientName()),
       id: index.toString(),
       lanes: Array.from({ length: laneCount }, (_, laneIndex) => ({
-        label: `Project ${index + 1}-${laneIndex + 1}`,
+        label: getCachedValue(`project-${index}-${laneIndex}`, getRandomProjectName()),
         id: `${index}-${laneIndex}`,
-        tasks: laneTasks[laneIndex]
+        tasks: generateLaneTasks(20, `project-${index + 1}-${laneIndex}`)
       }))
     };
   });
@@ -203,7 +265,7 @@ const projects = computed<Entity[]>(() => {
 
 // Tasks list
 const tasks = computed<Task[]>(() => {
-  return getCachedValue('random-tasks', generateRandomTasks({ amount: 20 }));
+  return getCachedValue('random-tasks', generateRandomTasks({ amount: 20, noOverlap: true, timelineDays: timelineDays.value }));
 });
 
 // Active entities based on selected type
@@ -219,10 +281,71 @@ const activeEntities = computed(() => {
   }
 });
 
+const getCenterDay = () => {
+  const container = scrollContainer.value;
+  if (!container) return 0;
+
+  const rect = container.getBoundingClientRect();
+
+  // Find today position relative to scroll container
+  const timelineElement = container.querySelector('.timeline__days');
+  if (!timelineElement) return 0;
+
+  const dayWidth = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--timeline-day-width')
+    .replace('rem', '')) * 16;
+
+  const scrollLeft = container.scrollLeft;
+
+  // Calculate which day is in the center
+  const centerDay = Math.round((scrollLeft + (rect.width / 2) - sidebarWidth.value) / dayWidth);
+
+  return Math.max(0, Math.min(centerDay, timelineDays.value.length - 1));
+};
+
+const scrollToDay = (day: number) => {
+  if (!scrollContainer.value) return;
+
+  const dayWidth = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--timeline-day-width')
+    .replace('px', ''));
+
+  const targetPosition = (day * dayWidth) + sidebarWidth.value;
+  const containerWidth = scrollContainer.value.clientWidth;
+  const scrollPosition = targetPosition - (containerWidth / 2);
+
+  scrollContainer.value.scrollTo({
+    left: scrollPosition,
+    behavior: 'instant'
+  });
+};
+
+const scrollToToday = () => {
+  const container = scrollContainer.value;
+  const todayElement = container?.querySelector('.timeline__day--today');
+
+  if (!container || !todayElement) return;
+
+  const containerRect = container.getBoundingClientRect();
+  const todayRect = todayElement.getBoundingClientRect();
+
+  // Calculate scroll position that will center today
+  const scrollPosition = todayRect.left + container.scrollLeft - containerRect.left - (containerRect.width / 2);
+
+  container.scrollTo({
+    left: scrollPosition,
+    behavior: 'instant'
+  });
+};
 
 
 // Event handling
 onMounted(() => {
+
+  nextTick(() => {
+    scrollToToday();
+  });
+
   eventBus.on('collapseEntity', (data: any) => {
     if (data.entity) {
       const index = collapsedUsers.value.indexOf(data.entity);

@@ -1,12 +1,12 @@
 <template>
   <div :class="bemm()">
+    <TimelineHeader :class="bemm('header')" :days="days"></TimelineHeader>
+
     <div v-for="entity in entities" :key="entity.id" :class="bemm('entity')">
       <div :class="bemm('workload')" v-if="hasWorkload">
         <div :class="bemm('workload-days')" :style="getDaysGridStyle()">
-          <div v-for="(day, index) in days"
-               :key="day.id"
-               :class="bemm('workload-day')"
-               :style="`--workload: ${getWorkload(index, entity.id)}`">
+          <div v-for="(day, index) in days" :key="day.id" :class="bemm('workload-day', { 'today': day.isToday })"
+            :style="`--workload: ${getWorkload(index, entity.id)}`">
           </div>
         </div>
       </div>
@@ -14,17 +14,14 @@
       <div :class="bemm('lanes', {
         collapsed: collapsedEntities.includes(entity.label)
       })" :style="`--entity-lanes-length: ${entity.lanes.length}`">
-        <div v-for="lane in entity.lanes"
-             :key="lane.id"
-             :class="bemm('lane')"
-             v-if="!entity.collapsed">
+        <div v-for="lane in entity.lanes" :key="lane.id" :class="bemm('lane')" v-if="!entity.collapsed">
           <div :class="bemm('days')" :style="getDaysGridStyle()">
-            <!-- Render tasks directly with absolute positioning -->
-            <div v-for="task in lane.tasks"
-                 :key="task.id"
-                 :class="bemm('task')"
-                 :style="getTaskStyle(task)">
+            <div v-for="task in lane.tasks" :key="task.id" :class="bemm('task')" :style="getTaskStyle(task)">
               {{ task.label }}
+            </div>
+            <div v-for="day in days" :key="day.id" :class="bemm('day', { 'today': day.isToday })"
+              :data-day="day.id"
+              :style="getDayStyle(day)">
             </div>
           </div>
         </div>
@@ -34,12 +31,15 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps, PropType, computed } from 'vue'
-import * as b from 'bemm'
+import { defineProps, PropType, computed, ref, onMounted } from 'vue'
+import { useBemm } from 'bemm'
 import { Day, Entity, Task } from './Timeline.model';
 import { useCache } from '../composables/useCache';
+import TimelineHeader from './TimelineHeader.vue';
 
-const bemm = b.useBemm('timeline');
+const bemm = useBemm('timeline', {
+  includeBaseClass: true
+});
 
 const props = defineProps({
   days: {
@@ -64,6 +64,14 @@ const { getCachedValue } = useCache();
 
 const totalDays = computed(() => props.days.length);
 
+const getDayStyle = (day: Day) => {
+  const column = props.days.findIndex(d => d.id === day.id) + 1;
+  return {
+    'grid-column': column,
+    'grid-row': '1 / -1'
+  };
+};
+
 const getDaysGridStyle = () => ({
   '--total-days': totalDays.value,
   'grid-template-columns': `repeat(${totalDays.value}, var(--timeline-day-width))`,
@@ -80,10 +88,25 @@ const randomNumberBetween = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
+const timelineStartDate = ref(new Date());
+
+onMounted(() => {
+  timelineStartDate.value = new Date(props.days[0].date);
+});
+
 const getTaskStyle = (task: Task) => {
+
+  console.log('task:', task);
+  const taskStartDate = new Date(task.startDay); // Assuming task.startDate is a string in 'YYYY-MM-DD' format
+  const daysFromStart = Math.floor((taskStartDate.getTime() - timelineStartDate.value.getTime()) / (1000 * 60 * 60 * 24));
+
+  console.log('taskStartDate:', taskStartDate);
+  console.log('timelineStartDate:', timelineStartDate.value);
+
+
   return {
     '--task-length': task.lengthInDays,
-    'left': `calc(${task.startDay} * var(--timeline-day-width))`,
+    'left':  `calc(${daysFromStart} * var(--timeline-day-width))`,
     'width': `calc(${task.lengthInDays} * var(--timeline-day-width) - 0.2em)`
   };
 };
@@ -97,6 +120,13 @@ const getTaskStyle = (task: Task) => {
   height: fit-content;
   width: fit-content;
 
+  &__header{
+    position: sticky;
+    top: 0;
+    height: var(--timeline-header-height);
+    z-index: 2;
+  }
+
   &__workload {
     background-color: rgba(255, 255, 255, .5);
     width: 100%;
@@ -108,8 +138,9 @@ const getTaskStyle = (task: Task) => {
   }
 
   &__workload-day {
-    width: var(--timeline-day-width, 100px);
-    height: var(--timeline-workload-height, 100px);
+    position: relative;
+    width: var(--timeline-day-width);
+    height: var(--timeline-workload-height);
     background-image: linear-gradient(to top,
         var(--timeline-workload-color-1),
         var(--timeline-workload-color-2) calc(var(--workload, 50) * 1%),
@@ -148,8 +179,40 @@ const getTaskStyle = (task: Task) => {
     position: relative;
     height: 100%;
     width: calc(var(--total-days) * var(--timeline-day-width));
+    grid-template-columns: repeat(var(--total-days), var(--timeline-day-width));
 
     @include global.days();
+  }
+
+  &__day {
+    position: relative;
+    width: var(--timeline-day-width);
+    height: 100%;
+    grid-row: 1 / -1;
+
+  }
+
+  &__day,
+  &__workload-day {
+
+    &--today {
+      --today-color: #FFC107;
+      --today-line-width: 2px;
+      --timeline-workload-color-1: rgb(130, 184, 117,.25);
+      --timeline-workload-color-2: rgb(130, 184, 117,.75);
+
+      &::before {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: var(--today-line-width);
+        background-color: var(--today-color);
+        z-index: 1;
+        content: "";
+        display: block;
+      }
+    }
   }
 
   &__task {
@@ -163,6 +226,7 @@ const getTaskStyle = (task: Task) => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    z-index: 2;
   }
 }
 </style>
