@@ -1,7 +1,8 @@
 
 export interface Day {
   label: string,
-  id: string
+  id: string,
+  month: number,
 }
 
 

@@ -102,10 +102,22 @@ const types = computed(() => [
 
 // Generate timeline days
 const timelineDays = computed<Day[]>(() => {
-  return Array.from({ length: 365 }, (_, index) => ({
-    label: index.toString(),
-    id: index.toString()
-  }));
+  const days = [];
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; // Days in each month
+
+  let dayIndex = 0;
+  for (let month = 0; month < 12; month++) {
+    for (let day = 1; day <= daysInMonth[month]; day++) {
+      days.push({
+        label: day.toString(),
+        id: dayIndex.toString(),
+        month: month + 1,
+      });
+      dayIndex++;
+    }
+  }
+
+  return days;
 });
 
 // Generate random tasks helper
