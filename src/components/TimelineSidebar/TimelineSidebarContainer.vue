@@ -26,6 +26,7 @@ const bemm = useBemm('timeline-sidebar');
 
   &::before{
     pointer-events: none;
+    position: absolute;
     content: "";
     top: 0;
     width: 2em; height: 100%;  left: 100%;

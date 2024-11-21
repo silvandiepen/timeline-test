@@ -11,7 +11,8 @@
 
     <div :class="bemm('wrapper')">
 
-      <TimelineTaskBar :class="bemm('taskbar')" :active="activeType == 2" :collapsed="activeTaskbar">
+      <TimelineTaskBar :class="bemm('taskbar')" :active="activeType == 2" :collapsed="activeTaskbar"
+        :width="taskbarWidth">
         <TimelineSidebarTasks :tasks="tasks" />
       </TimelineTaskBar>
 
@@ -20,13 +21,13 @@
         'has-inactive-taskbar': activeTaskbar && activeType === 2
       })">
         <template v-if="activeType === 2">
-          <TimelineSidebarHeader type="users" :class="bemm('sidebar-header', 'users')" />
+          <TimelineSidebarHeader type="users" :class="bemm('sidebar-header', 'users')" :width="sidebarWidth" />
           <TimelineSidebarContainer :class="bemm('sidebar', 'users')">
             <TimelineSidebarUsers :entities="users" :collapsedEntities="collapsedUsers" />
           </TimelineSidebarContainer>
         </template>
         <template v-if="activeType === 1">
-          <TimelineSidebarHeader type="project" :class="bemm('sidebar-header', 'project')" />
+          <TimelineSidebarHeader type="project" :class="bemm('sidebar-header', 'project')" :width="sidebarWidth" />
           <TimelineSidebarContainer :class="bemm('sidebar', 'project')">
             <TimelineSidebarProjects :entities="projects" />
           </TimelineSidebarContainer>
@@ -69,8 +70,6 @@ const { getCachedValue } = useCache();
 
 const taskbarWidth = ref(400);
 const sidebarWidth = ref(400);
-
-
 
 const activeType = ref(1);
 const activeTaskbar = ref(false);
@@ -188,6 +187,8 @@ const activeEntities = computed(() => {
   }
 });
 
+
+
 // Event handling
 onMounted(() => {
   eventBus.on('collapseEntity', (data: any) => {
@@ -205,8 +206,16 @@ onMounted(() => {
     activeTaskbar.value = !activeTaskbar.value;
   });
 
-  eventBus.on('drag-handle',(d:any)=>{
-    console.log(d)
+  eventBus.on('drag-handle', (d: any) => {
+    switch (d.elementId) {
+      case 'timeline-sidebar':
+        sidebarWidth.value = Math.round(d.value);
+        console.log('sidebar', d);
+        break;
+      case 'timeline-taskbar':
+        taskbarWidth.value = Math.round(d.value);
+        break;
+    }
   })
 });
 </script>

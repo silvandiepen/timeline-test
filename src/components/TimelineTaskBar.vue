@@ -10,7 +10,10 @@
       <div :class="bemm('header')" @click="toggleTaskBar()">
         Tasks
 
-    <div :class="[bemm('drag-handle'),'drag-handle']"></div>
+        <div :class="[bemm('drag-handle'), 'drag-handle']" @pointerdown="($e) => {
+          $e.preventDefault();
+          handleDragStart($e, props.width)
+        }"></div>
       </div>
       <div :class="bemm('tasks-container', {
         open: !isCollapsed
@@ -25,8 +28,10 @@
 import { useBemm } from 'bemm'
 import { ref, watch } from 'vue';
 import { eventBus } from '../eventBus';
+import { useDragHandle } from '../composables/useDragHandle';
 
 const bemm = useBemm('timeline-taskbar');
+const { handleDragStart } = useDragHandle('timeline-taskbar');
 
 const props = defineProps({
   active: {
@@ -36,6 +41,10 @@ const props = defineProps({
   collapsed: {
     type: Boolean,
     default: false
+  },
+  width: {
+    number: Number,
+    default: 0
   }
 })
 const isActive = ref(props.active);
@@ -79,8 +88,10 @@ const toggleTaskBar = () => {
 
   }
 
-  &__drag-handle{
-    position: absolute; top: 50%; right: 1em;
+  &__drag-handle {
+    position: absolute;
+    top: 50%;
+    right: 1em;
     transform: translateY(-50%);
   }
 

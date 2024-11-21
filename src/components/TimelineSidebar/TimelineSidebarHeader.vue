@@ -6,18 +6,25 @@
       <strong>{{ type }}</strong> Timeline Sidebar header
 
     </div>
-    <div :class="[bemm('drag-handle'),'drag-handle']"></div>
+    <div :class="[bemm('drag-handle'), 'drag-handle']" @pointerdown="($e) => handleDragStart($e, props.width)"></div>
   </header>
 </template>
 
 <script lang="ts" setup>
 import { useBemm } from 'bemm'
-const bemm = useBemm('timeline-sidebar-header');
+import { useDragHandle } from '../../composables/useDragHandle';
 
-defineProps({
+const bemm = useBemm('timeline-sidebar-header');
+const { handleDragStart } = useDragHandle('timeline-sidebar');
+
+const props = defineProps({
   type: {
     type: String,
     required: true
+  },
+  width: {
+    type: Number,
+    default: 0
   }
 })
 </script>
@@ -30,16 +37,22 @@ defineProps({
 
   height: var(--timeline-header-height);
 
-  &::before{
+  &::before {
     pointer-events: none;
     content: "";
-    width: 2em; height: 100%; position: absolute; left: 100%;
-    background-image: linear-gradient(to right, rgba(0,0,0,.2), rgba(0,0,0,0));
+    width: 2em;
+    height: 100%;
+    position: absolute;
+    left: 100%;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, .2), rgba(0, 0, 0, 0));
   }
 
 
-  &__drag-handle{position: fixed;
-   z-index: 100;   right: .5em; top: 50%;
+  &__drag-handle {
+    position: fixed;
+    z-index: 100;
+    right: .5em;
+    top: 50%;
     transform: translateY(-50%);
   }
 
