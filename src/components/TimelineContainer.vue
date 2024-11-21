@@ -1,12 +1,21 @@
 <template>
 
-  <div :class="bemm()" :style="{ '--sidebar-width': sidebarWidth + 'px', '--taskbar-width': taskbarWidth + 'px' }">
+  <div :class="bemm()"
+    :style="{ '--sidebar-width': sidebarWidth + 'px', '--taskbar-width': taskbarWidth + 'px', '--zoom': zoom }">
 
     <TimelinePageHeader :class="bemm('page-header')">
-      <button v-for="type in types" :key="type.id" :class="bemm('button', type.active ? 'active' : 'inactive')"
+<div></div>
+      <div :class="bemm('type-group')">
+        <button v-for="type in types" :key="type.id" :class="bemm('button', type.active ? 'active' : 'inactive')"
         @click="activeType = type.id">
         {{ type.label }}
       </button>
+
+      </div>
+      <div :class="bemm('actions')">
+        <button :disabled="!canZoomIn" @click="zoomIn">zoom in</button>
+        <button :disabled="!canZoomOut" @click="zoomOut">zoom out</button>
+      </div>
     </TimelinePageHeader>
 
     <div :class="bemm('wrapper')">
@@ -66,8 +75,6 @@ const bemm = useBemm('timeline-container', {
 });
 const { getCachedValue } = useCache();
 
-
-
 const taskbarWidth = ref(400);
 const sidebarWidth = ref(400);
 
@@ -75,6 +82,19 @@ const activeType = ref(1);
 const activeTaskbar = ref(false);
 const collapsedUsers = ref(['Goofy']);
 
+
+// Zoom
+const zoom = ref(1);
+const zoomIn = () => {
+  zoom.value += 0.5;
+};
+const zoomOut = () => {
+  zoom.value -= 0.5;
+};
+const canZoomIn = computed(() => zoom.value < 3);
+const canZoomOut = computed(() => zoom.value > 0.5);
+
+// Types
 const types = computed(() => [
   { label: 'Projects', id: 1, active: activeType.value === 1 },
   { label: 'Users', id: 2, active: activeType.value === 2 }
@@ -222,7 +242,7 @@ onMounted(() => {
 
 <style lang="scss">
 .timeline-container {
-  --timeline-day-width: 30px;
+  --timeline-day-width: calc(2rem * var(--zoom, 1));
   --timeline-header-height: 80px;
   --timeline-sidebar-width: var(--sidebar-width);
   --timeline-lane-height: 80px;

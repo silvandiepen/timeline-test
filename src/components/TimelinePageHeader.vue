@@ -17,10 +17,15 @@ const bemm = useBemm('timeline-page-header');
   height: var(--timeline-header-height);
   display: flex;
   flex-direction: row;
-  justify-content: center;
   gap: .5em;
   padding: 1em;
   align-items: center;
+
+  justify-content: space-between;
+
+  >div{
+    display: flex; gap: .5em;
+  }
 
 }
 </style>
