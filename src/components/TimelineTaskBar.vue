@@ -30,7 +30,9 @@ import { ref, watch } from 'vue';
 import { eventBus } from '../eventBus';
 import { useDragHandle } from '../composables/useDragHandle';
 
-const bemm = useBemm('timeline-taskbar');
+const bemm = useBemm('timeline-taskbar', {
+  includeBaseClass: true
+});
 const { handleDragStart } = useDragHandle('timeline-taskbar');
 
 const props = defineProps({
@@ -139,6 +141,8 @@ const toggleTaskBar = () => {
     flex-direction: column;
     clip-path: inset(0 0 100% 0%);
     transition: clip-path .3s ease-in-out;
+    height: calc(100vh - var(--page-header-height) - (var(--timeline-header-height) * 2));
+    overflow: scroll;
 
     &--open {
       transition: clip-path .3s ease-in-out;
