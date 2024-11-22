@@ -13,8 +13,8 @@
 
       </div>
       <div :class="bemm('actions')">
-        <button :disabled="!canZoomIn" @click="zoomIn">zoom in</button>
-        <button :disabled="!canZoomOut" @click="zoomOut">zoom out</button>
+        <!-- <button :disabled="!canZoomIn" @click="zoomIn">zoom in</button>
+        <button :disabled="!canZoomOut" @click="zoomOut">zoom out</button> -->
       </div>
     </TimelinePageHeader>
 
