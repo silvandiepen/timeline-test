@@ -85,30 +85,30 @@ const collapsedUsers = ref(['Goofy']);
 
 // Zoom
 const zoom = ref(1);
-const zoomIn = () => {
-  const centerDay = getCenterDay();
+// const zoomIn = () => {
+//   const centerDay = getCenterDay();
 
-  console.log(centerDay)
+//   console.log(centerDay)
 
-  if (centerDay) {
-    zoom.value += 0.5;
-    setTimeout(() => {
-      scrollToDay(centerDay);
-    }, 100);
-  }
-};
-const zoomOut = () => {
-  const centerDay = getCenterDay();
+//   if (centerDay) {
+//     zoom.value += 0.5;
+//     setTimeout(() => {
+//       scrollToDay(centerDay);
+//     }, 100);
+//   }
+// };
+// const zoomOut = () => {
+//   const centerDay = getCenterDay();
 
-  if (centerDay) {
-    zoom.value -= 0.5;
-    setTimeout(() => {
-      scrollToDay(centerDay);
-    }, 100);
-  }
-};
-const canZoomIn = computed(() => zoom.value < 3);
-const canZoomOut = computed(() => zoom.value > 0.5);
+//   if (centerDay) {
+//     zoom.value -= 0.5;
+//     setTimeout(() => {
+//       scrollToDay(centerDay);
+//     }, 100);
+//   }
+// };
+// const canZoomIn = computed(() => zoom.value < 3);
+// const canZoomOut = computed(() => zoom.value > 0.5);
 
 // Types
 const types = computed(() => [
@@ -281,44 +281,44 @@ const activeEntities = computed(() => {
   }
 });
 
-const getCenterDay = () => {
-  const container = scrollContainer.value;
-  if (!container) return 0;
+// const getCenterDay = () => {
+//   const container = scrollContainer.value;
+//   if (!container) return 0;
 
-  const rect = container.getBoundingClientRect();
+//   const rect = container.getBoundingClientRect();
 
-  // Find today position relative to scroll container
-  const timelineElement = container.querySelector('.timeline__days');
-  if (!timelineElement) return 0;
+//   // Find today position relative to scroll container
+//   const timelineElement = container.querySelector('.timeline__days');
+//   if (!timelineElement) return 0;
 
-  const dayWidth = parseFloat(getComputedStyle(document.documentElement)
-    .getPropertyValue('--timeline-day-width')
-    .replace('rem', '')) * 16;
+//   const dayWidth = parseFloat(getComputedStyle(document.documentElement)
+//     .getPropertyValue('--timeline-day-width')
+//     .replace('rem', '')) * 16;
 
-  const scrollLeft = container.scrollLeft;
+//   const scrollLeft = container.scrollLeft;
 
-  // Calculate which day is in the center
-  const centerDay = Math.round((scrollLeft + (rect.width / 2) - sidebarWidth.value) / dayWidth);
+//   // Calculate which day is in the center
+//   const centerDay = Math.round((scrollLeft + (rect.width / 2) - sidebarWidth.value) / dayWidth);
 
-  return Math.max(0, Math.min(centerDay, timelineDays.value.length - 1));
-};
+//   return Math.max(0, Math.min(centerDay, timelineDays.value.length - 1));
+// };
 
-const scrollToDay = (day: number) => {
-  if (!scrollContainer.value) return;
+// const scrollToDay = (day: number) => {
+//   if (!scrollContainer.value) return;
 
-  const dayWidth = parseFloat(getComputedStyle(document.documentElement)
-    .getPropertyValue('--timeline-day-width')
-    .replace('px', ''));
+//   const dayWidth = parseFloat(getComputedStyle(document.documentElement)
+//     .getPropertyValue('--timeline-day-width')
+//     .replace('px', ''));
 
-  const targetPosition = (day * dayWidth) + sidebarWidth.value;
-  const containerWidth = scrollContainer.value.clientWidth;
-  const scrollPosition = targetPosition - (containerWidth / 2);
+//   const targetPosition = (day * dayWidth) + sidebarWidth.value;
+//   const containerWidth = scrollContainer.value.clientWidth;
+//   const scrollPosition = targetPosition - (containerWidth / 2);
 
-  scrollContainer.value.scrollTo({
-    left: scrollPosition,
-    behavior: 'instant'
-  });
-};
+//   scrollContainer.value.scrollTo({
+//     left: scrollPosition,
+//     behavior: 'instant'
+//   });
+// };
 
 const scrollToToday = () => {
   const container = scrollContainer.value;
